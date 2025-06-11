@@ -80,6 +80,7 @@ import org.owasp.dependencycheck.utils.Filter;
 import org.owasp.dependencycheck.utils.Downloader;
 import org.owasp.dependencycheck.utils.InvalidSettingException;
 import org.owasp.dependencycheck.utils.Settings;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.File;
 import java.io.IOException;
@@ -90,10 +91,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.logging.Logger;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+
 import org.apache.maven.artifact.repository.ArtifactRepository;
 
 import org.apache.maven.artifact.resolver.filter.ExcludesArtifactFilter;
@@ -120,6 +123,11 @@ import org.owasp.dependencycheck.xml.pom.PomUtils;
  * @author Jeremy Long
  */
 public abstract class BaseDependencyCheckMojo extends AbstractMojo implements MavenReport {
+
+    static {
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+    }
 
     //<editor-fold defaultstate="collapsed" desc="Private fields">
     /**
@@ -1248,7 +1256,11 @@ public abstract class BaseDependencyCheckMojo extends AbstractMojo implements Ma
     private static boolean isEqualOrNull(String left, String right) {
         return (left != null && left.equals(right)) || (left == null && right == null);
     }
-
+    private void configureLogger() {
+        Logger luceneLogger = Logger.getLogger("org.apache.lucene");
+        luceneLogger.addHandler(new CustomLogHandler(getLog()));
+        luceneLogger.setUseParentHandlers(false);
+    }
     /**
      * Executes dependency-check.
      *
@@ -1258,6 +1270,7 @@ public abstract class BaseDependencyCheckMojo extends AbstractMojo implements Ma
      */
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        configureLogger();
         generatingSite = false;
         final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("dependency-check.skip", Boolean.toString(skip)));
         if (shouldSkip) {
@@ -1303,6 +1316,7 @@ public abstract class BaseDependencyCheckMojo extends AbstractMojo implements Ma
      * @throws MavenReportException if a maven report exception occurs
      */
     public void generate(Sink sink, Locale locale) throws MavenReportException {
+        configureLogger();
         final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("dependency-check.skip", Boolean.toString(skip)));
         if (shouldSkip) {
             getLog().info("Skipping report generation " + getName(Locale.US));
